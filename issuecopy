@@ -26,16 +26,7 @@ def convert(json_path, out_path):
         row["검출일"] = item.get("일시", "")
         row["문제점"] = item.get("이슈제목", "")
         row["재현경로"] = item.get("재현경로", "")
-
-        # 작성자 / 방이름은 매칭되는 컬럼이 없어서 '비고'에 참고용으로 기록
-        room = item.get("방이름", "")
-        author = item.get("작성자", "")
-        note_parts = []
-        if room:
-            note_parts.append(f"[{room}]")
-        if author:
-            note_parts.append(author)
-        row["비고"] = " ".join(note_parts)
+        row["검증자"] = item.get("작성자", "")
 
         rows.append(row)
 
