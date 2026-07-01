@@ -1,0 +1,60 @@
+import json
+import sys
+import csv
+
+# 엑셀 컬럼 순서 (그대로 유지, 값 없으면 빈 칸)
+COLUMNS = [
+    "결함ID", "검출일", "검증 유형", "TC_ID", "검증 항목", "쿼리 복잡도",
+    "등급", "결함 유형", "문제점", "재현경로", "참고 이미지", "기대 결과",
+    "진행 상태", "해결일", "해결 확인일", "검증자", "비고"
+]
+
+
+def convert(json_path, out_path):
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # 단일 객체로 들어온 경우도 처리
+    if isinstance(data, dict):
+        data = [data]
+
+    rows = []
+    for item in data:
+        row = {c: "" for c in COLUMNS}
+
+        # ---- JSON에서 확실히 알 수 있는 값만 매핑 ----
+        row["검출일"] = item.get("일시", "")
+        row["문제점"] = item.get("이슈제목", "")
+        row["재현경로"] = item.get("재현경로", "")
+
+        # 작성자 / 방이름은 매칭되는 컬럼이 없어서 '비고'에 참고용으로 기록
+        room = item.get("방이름", "")
+        author = item.get("작성자", "")
+        note_parts = []
+        if room:
+            note_parts.append(f"[{room}]")
+        if author:
+            note_parts.append(author)
+        row["비고"] = " ".join(note_parts)
+
+        rows.append(row)
+
+    # 탭으로 구분된 텍스트로 저장 (엑셀에 붙여넣으면 컬럼별로 자동 정렬됨)
+    with open(out_path, "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f, delimiter="\t")
+        for row in rows:
+            writer.writerow([row[c] for c in COLUMNS])
+
+    print(f"완료: {len(rows)}건 변환 -> {out_path}")
+    print("output.tsv 파일을 열어서 내용을 전체 복사(Ctrl+A, Ctrl+C) 한 뒤,")
+    print("엑셀의 '결함ID' 컬럼 아래 첫 행에 붙여넣기(Ctrl+V) 하면 됩니다.")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("사용법: python json_to_excel.py 입력파일.json [출력파일.tsv]")
+        sys.exit(1)
+
+    json_path = sys.argv[1]
+    out_path = sys.argv[2] if len(sys.argv) > 2 else "output.tsv"
+    convert(json_path, out_path)
